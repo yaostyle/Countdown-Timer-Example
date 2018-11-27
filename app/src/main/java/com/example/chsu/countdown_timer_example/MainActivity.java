@@ -21,6 +21,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean mTimerRunning;
 
     private long mTimeLeftInMillis = START_TIME_IN_MILLIS;
+    private long mEndTime;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,6 +55,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startTimer() {
+        mEndTime = System.currentTimeMillis() + mTimeLeftInMillis;
+
         mCountDownTimer =  new CountDownTimer(mTimeLeftInMillis, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
@@ -65,29 +68,25 @@ public class MainActivity extends AppCompatActivity {
             public void onFinish() {
                 mTimerRunning = false;
                 mButtonStartPause.setText("Start");
-                mButtonStartPause.setVisibility(View.INVISIBLE);
-                mButtonReset.setVisibility(View.VISIBLE);
+                updateButtons();
 
             }
         }.start();
 
         mTimerRunning = true;
-        mButtonStartPause.setText("pause");
-        mButtonReset.setVisibility(View.INVISIBLE);
+        updateButtons();
     }
 
     private void pauseTimer() {
         mCountDownTimer.cancel();
         mTimerRunning = false;
-        mButtonStartPause.setText("start");
-        mButtonReset.setVisibility(View.VISIBLE);
+        updateButtons();
     }
 
     private void resetTimer() {
         mTimeLeftInMillis = START_TIME_IN_MILLIS;
         updateCountDownText();
-        mButtonReset.setVisibility(View.INVISIBLE);
-        mButtonStartPause.setVisibility(View.VISIBLE);
+        updateButtons();
     }
 
     private void updateCountDownText() {
@@ -96,5 +95,51 @@ public class MainActivity extends AppCompatActivity {
 
         String timeLeftFormatted = String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds);
         mTextViewCountDown.setText(timeLeftFormatted);
+    }
+
+    private void updateButtons() {
+        if (mTimerRunning) {
+            mButtonReset.setVisibility(View.INVISIBLE);
+            mButtonStartPause.setText("Pause");
+        } else {
+            mButtonStartPause.setText("Start");
+
+            if (mTimeLeftInMillis < 1000) {
+                mButtonStartPause.setVisibility(View.INVISIBLE);
+            } else {
+                mButtonStartPause.setVisibility(View.VISIBLE);
+            }
+
+            if (mTimeLeftInMillis < START_TIME_IN_MILLIS) {
+                mButtonReset.setVisibility(View.VISIBLE);
+            } else {
+                mButtonReset.setVisibility(View.INVISIBLE);
+            }
+
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putLong("millisLeft", mTimeLeftInMillis);
+        outState.putBoolean("timerRunning", mTimerRunning);
+        outState.putLong("endTime", mEndTime);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+
+        mTimeLeftInMillis = savedInstanceState.getLong("millisLeft");
+        mTimerRunning = savedInstanceState.getBoolean("timerRunning");
+        updateCountDownText();
+        updateButtons();
+
+        if (mTimerRunning) {
+            mEndTime = savedInstanceState.getLong("endTime");
+            mTimeLeftInMillis = mEndTime - System.currentTimeMillis();
+            startTimer();
+        }
     }
 }
